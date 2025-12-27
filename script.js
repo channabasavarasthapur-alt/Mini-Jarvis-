@@ -27,7 +27,10 @@ recognition.onresult = (e) => {
     speak("Yes, how can I help?");
   }
   else if (cmd.includes("time")) {
-    speak(new Date().toLocaleTimeString());
+    // ✅ Fixed time with IST
+    const now = new Date();
+    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' };
+    speak("The time is " + now.toLocaleTimeString('en-US', options));
   }
   else if (cmd.includes("date")) {
     speak(new Date().toDateString());
@@ -52,7 +55,9 @@ recognition.onresult = (e) => {
     openNotes();
   }
   else {
-    speak("Sorry, I did not understand");
+    // Optional improvement: auto Google search instead of "sorry"
+    speak("Searching Google for " + cmd);
+    window.open("https://www.google.com/search?q=" + cmd, "_blank");
   }
 };
 
@@ -71,3 +76,4 @@ function openNotes() {
   note = prompt("Your note:", note);
   if (note !== null) localStorage.setItem("jarvisNote", note);
 }
+
