@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JARVIS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<div class="jarvis">
+  <div class="ring" id="ring"></div>
+  <h1>JARVIS</h1>
+  <p id="status">Tap mic and say "Hey Jarvis"</p>
+  <button id="micBtn">🎤</button>
+
+  <div class="tools">
+    <button onclick="openCalc()">🧮</button>
+    <button onclick="openNotes()">📝</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
