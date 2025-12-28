@@ -8,10 +8,34 @@ const SpeechRecognition =
 const recognition = new SpeechRecognition();
 recognition.lang = "en-US";
 
+/* ---------- VOICE IMPROVEMENT ---------- */
+let voices = [];
+
+function loadVoices() {
+  voices = speechSynthesis.getVoices();
+}
+speechSynthesis.onvoiceschanged = loadVoices;
+
 function speak(text) {
+  speechSynthesis.cancel(); // stop previous speech
+
   const u = new SpeechSynthesisUtterance(text);
+
+  // Pick best available natural voice
+  const voice =
+    voices.find(v => v.name.includes("Google")) ||
+    voices.find(v => v.name.includes("Natural")) ||
+    voices.find(v => v.lang === "en-US");
+
+  if (voice) u.voice = voice;
+
+  u.rate = 0.95;   // smooth
+  u.pitch = 1.05;  // natural
+  u.volume = 1;
+
   speechSynthesis.speak(u);
 }
+/* ------------------------------------- */
 
 micBtn.onclick = () => {
   recognition.start();
@@ -24,39 +48,32 @@ recognition.onresult = (e) => {
   statusText.innerText = cmd;
 
   if (cmd.includes("hey jarvis")) {
-    speak("Yes, how can I help?");
+    speak("Yes. How can I help you?");
   }
   else if (cmd.includes("time")) {
-    // ✅ Fixed time with IST
     const now = new Date();
-    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' };
-    speak("The time is " + now.toLocaleTimeString('en-US', options));
+    const options = {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata"
+    };
+    speak("The time is " + now.toLocaleTimeString("en-US", options));
   }
   else if (cmd.includes("date")) {
-    speak(new Date().toDateString());
+    speak("Today is " + new Date().toDateString());
   }
   else if (cmd.includes("open google")) {
     speak("Opening Google");
-    window.open("https://google.com");
+    window.open("https://google.com", "_blank");
   }
   else if (cmd.includes("open youtube")) {
     speak("Opening YouTube");
-    window.open("https://youtube.com");
-  }
-  else if (cmd.startsWith("search")) {
-    const q = cmd.replace("search", "");
-    speak("Searching Google");
-    window.open("https://www.google.com/search?q=" + q);
-  }
-  else if (cmd.includes("calculator")) {
-    openCalc();
-  }
-  else if (cmd.includes("notes")) {
-    openNotes();
+    window.open("https://youtube.com", "_blank");
   }
   else {
-    // Optional improvement: auto Google search instead of "sorry"
-    speak("Searching Google for " + cmd);
+    speak("Searching Google");
     window.open("https://www.google.com/search?q=" + cmd, "_blank");
   }
 };
@@ -65,15 +82,26 @@ recognition.onend = () => {
   ring.classList.remove("listening");
 };
 
+function toggleTheme() {
+  document.body.classList.toggle("light");
+}
+
 function openCalc() {
-  const n1 = prompt("Enter first number");
-  const n2 = prompt("Enter second number");
-  alert("Sum = " + (Number(n1) + Number(n2)));
+  const a = prompt("Enter first number");
+  const b = prompt("Enter second number");
+  const result = Number(a) + Number(b);
+  alert("Result = " + result);
+  speak("The result is " + result);
 }
 
 function openNotes() {
   let note = localStorage.getItem("jarvisNote") || "";
   note = prompt("Your note:", note);
-  if (note !== null) localStorage.setItem("jarvisNote", note);
+  if (note !== null) {
+    localStorage.setItem("jarvisNote", note);
+    speak("Note saved");
+  }
 }
+
+
 
