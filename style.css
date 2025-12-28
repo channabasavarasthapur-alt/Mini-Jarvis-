@@ -2,15 +2,23 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 body {
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at center, #020617, #000);
+  background:
+    radial-gradient(circle at center, #020617 0%, #000 70%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(56,189,248,0.03),
+      rgba(56,189,248,0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
   overflow: hidden;
-  color: #38bdf8;
+  color: #7dd3fc;
 }
 
 .app {
@@ -22,61 +30,91 @@ body {
   justify-content: center;
 }
 
-/* Ring */
+/* ================= RING ================= */
 .ring {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
-  border: 3px solid rgba(56,189,248,0.4);
   position: relative;
-  margin-bottom: 40px;
+  margin-bottom: 50px;
+  background:
+    radial-gradient(circle, rgba(56,189,248,0.08), transparent 60%);
 }
 
 .ring::before,
 .ring::after {
   content: "";
   position: absolute;
-  inset: -15px;
+  inset: 0;
   border-radius: 50%;
-  border: 2px dashed rgba(56,189,248,0.3);
-  animation: rotate 12s linear infinite;
+  border: 2px solid rgba(56,189,248,0.35);
 }
 
 .ring::after {
-  inset: -30px;
-  animation-direction: reverse;
+  inset: -20px;
+  border-style: dashed;
+  opacity: 0.5;
+  animation: slowRotate 18s linear infinite;
 }
 
+/* Listening pulse */
 .listening {
-  box-shadow: 0 0 40px #38bdf8;
+  animation: pulse 1.5s infinite ease-in-out;
+  box-shadow:
+    0 0 30px rgba(56,189,248,0.6),
+    0 0 80px rgba(56,189,248,0.3);
 }
 
-@keyframes rotate {
+@keyframes slowRotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
-/* Mic */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* ================= MIC ================= */
 .mic-btn {
-  width: 90px;
-  height: 90px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   border: none;
-  font-size: 34px;
+  font-size: 36px;
   cursor: pointer;
-  background: radial-gradient(circle, #38bdf8, #0ea5e9);
-  box-shadow: 0 0 30px rgba(56,189,248,0.8);
+
+  background:
+    radial-gradient(circle at top, #7dd3fc, #0284c7);
+
+  box-shadow:
+    0 0 25px rgba(56,189,248,0.8),
+    inset 0 -6px 12px rgba(0,0,0,0.35);
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mic-btn:hover {
+  box-shadow:
+    0 0 40px rgba(56,189,248,1),
+    inset 0 -6px 12px rgba(0,0,0,0.35);
 }
 
 .mic-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
 }
 
+/* ================= TEXT ================= */
 #status {
-  margin-top: 20px;
-  font-size: 15px;
-  opacity: 0.8;
+  margin-top: 22px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.85;
 }
+
+
 
 
 
