@@ -5,29 +5,38 @@
   <title>JARVIS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
-<div class="jarvis">
-  <div class="ring" id="ring"></div>
-  <h1>JARVIS</h1>
-  <p id="status">Tap mic and say "Hey Jarvis"</p>
-  <button id="micBtn">🎤</button>
+<!-- Boot Screen -->
+<div id="boot" class="boot">
+  <p>Initializing JARVIS...</p>
+</div>
 
-  <div class="tools">
-    <button onclick="openCalc()">🧮</button>
-    <button onclick="openNotes()">📝</button>
+<div class="container">
+  <div class="hud">
+    <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+
+    <div class="ring" id="ring"></div>
+
+    <div class="wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <h1>JARVIS</h1>
+    <p id="status">Tap the mic and speak</p>
+
+    <button id="micBtn" class="mic-btn">🎤</button>
+
+    <div class="tools">
+      <button onclick="openCalc()">🧮</button>
+      <button onclick="openNotes()">📝</button>
+    </div>
   </div>
 </div>
 
 <script src="script.js"></script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
-</script>
-
 </body>
 </html>
+
+
