@@ -8,31 +8,12 @@
 </head>
 <body>
 
-<!-- Boot Screen -->
-<div id="boot" class="boot">
-  <p>Initializing JARVIS...</p>
-</div>
+<div class="app">
+  <div class="ring" id="ring"></div>
 
-<div class="container">
-  <div class="hud">
-    <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+  <button id="micBtn" class="mic-btn">🎤</button>
 
-    <div class="ring" id="ring"></div>
-
-    <div class="wave">
-      <span></span><span></span><span></span><span></span><span></span>
-    </div>
-
-    <h1>JARVIS</h1>
-    <p id="status">Tap the mic and speak</p>
-
-    <button id="micBtn" class="mic-btn">🎤</button>
-
-    <div class="tools">
-      <button onclick="openCalc()">🧮</button>
-      <button onclick="openNotes()">📝</button>
-    </div>
-  </div>
+  <p id="status">Tap the mic and speak</p>
 </div>
 
 <script src="script.js"></script>
