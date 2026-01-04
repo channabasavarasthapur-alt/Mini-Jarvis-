@@ -2,28 +2,35 @@ const micBtn = document.getElementById("mic");
 const statusText = document.getElementById("status");
 const languageSelect = document.getElementById("language");
 
-/* ---------------- SPEECH ---------------- */
+let voices = [];
 
-let voicesLoaded = false;
-
+// Load voices
 speechSynthesis.onvoiceschanged = () => {
-  voicesLoaded = true;
+  voices = speechSynthesis.getVoices();
 };
+
+// Force unlock speech (IMPORTANT)
+function unlockSpeech() {
+  const u = new SpeechSynthesisUtterance(" ");
+  u.volume = 0;
+  speechSynthesis.speak(u);
+  speechSynthesis.cancel();
+}
 
 function speak(text) {
   if (!text) return;
 
-  // Cancel previous speech
   speechSynthesis.cancel();
 
-  // Force user-gesture safety
-  setTimeout(() => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = languageSelect.value || "en-US";
-    utter.rate = 1;
-    utter.pitch = 1;
-    speechSynthesis.speak(utter);
-  }, 100);
+  const utter = new SpeechSynthesisUtterance(text);
+
+  // FORCE voice
+  const selectedLang = languageSelect.value;
+  const voice = voices.find(v => v.lang === selectedLang) || voices[0];
+  utter.voice = voice;
+  utter.lang = voice.lang;
+
+  speechSynthesis.speak(utter);
 }
 
 /* ---------------- MIC ---------------- */
@@ -33,84 +40,54 @@ const SpeechRecognition =
 
 const recognition = new SpeechRecognition();
 recognition.continuous = false;
-recognition.interimResults = false;
 
-function startListening() {
+micBtn.addEventListener("click", () => {
+  unlockSpeech(); // 🔥 THIS FIXES NO SOUND
   speechSynthesis.cancel();
-  recognition.lang = languageSelect.value || "en-US";
+  recognition.lang = languageSelect.value;
   recognition.start();
   statusText.innerText = "Listening...";
-}
+});
 
-/* ---------------- HELPERS ---------------- */
+recognition.onresult = (e) => {
+  const text = e.results[0][0].transcript;
+  statusText.innerText = "You said: " + text;
+  wiki(text);
+};
 
-function cleanQuery(text) {
+/* ---------------- WIKI ---------------- */
+
+function clean(text) {
   return text
     .toLowerCase()
-    .replace(/who is|what is|tell me about|define|explain|please/gi, "")
+    .replace(/who is|what is|tell me about|define|explain/gi, "")
     .trim();
 }
 
-/* ---------------- WIKIPEDIA (REAL FIX) ---------------- */
-
-async function wikiSearch(query) {
-  const topic = cleanQuery(query);
+async function wiki(query) {
+  const topic = clean(query);
   if (!topic) {
-    speak("Please say the topic again");
+    speak("Please repeat");
     return;
   }
 
-  statusText.innerText = "Searching " + topic;
-
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-      topic
-    )}`;
-
-    const res = await fetch(url);
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
+        topic
+      )}`
+    );
     const data = await res.json();
 
-    if (data.extract && !data.type) {
+    if (data.extract) {
       statusText.innerText = data.extract;
       speak(data.extract);
     } else {
-      speak("Sorry, I could not find details about " + topic);
+      speak("No information found");
     }
   } catch {
     speak("Network error");
   }
 }
 
-/* ---------------- COMMAND ---------------- */
-
-function handleCommand(command) {
-  statusText.innerText = "You said: " + command;
-
-  if (command.includes("time")) {
-    speak(new Date().toLocaleTimeString());
-    return;
-  }
-
-  if (command.includes("date")) {
-    speak(new Date().toDateString());
-    return;
-  }
-
-  wikiSearch(command);
-}
-
-/* ---------------- EVENTS ---------------- */
-
-micBtn.addEventListener("click", () => {
-  startListening();
-});
-
-recognition.onresult = (e) => {
-  const text = e.results[0][0].transcript;
-  handleCommand(text);
-};
-
-recognition.onerror = () => {
-  statusText.innerText = "Mic error. Tap again.";
-};
 
