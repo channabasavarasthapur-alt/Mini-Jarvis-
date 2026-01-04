@@ -2,27 +2,24 @@ const micBtn = document.getElementById("micBtn");
 const statusText = document.getElementById("status");
 const languageSelect = document.getElementById("language");
 
-/* Fix voice loading */
 window.speechSynthesis.onvoiceschanged = () => {};
 
-/* Speech Recognition */
+// Speech recognition
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 recognition.interimResults = false;
 
-/* Mic click */
-micBtn.addEventListener("click", e => {
-  e.preventDefault(); // stop Google search
-  recognition.lang = languageSelect.value;
+micBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  recognition.lang = languageSelect.value; // user speech language
   recognition.start();
   statusText.innerText = "Listening...";
 });
 
-/* Speech result */
-recognition.onresult = e => {
+recognition.onresult = (e) => {
   const message = e.results[0][0].transcript;
-  statusText.innerText = message;
+  statusText.innerText = "You said: " + message;
   handleCommand(message);
 };
 
@@ -31,59 +28,53 @@ recognition.onerror = () => {
   speak("Please try again");
 };
 
-/* Speak */
+// Speak
 function speak(text) {
   speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
 
-  const speech = new SpeechSynthesisUtterance(text);
-  speech.lang = languageSelect.value;
+  // IMPORTANT: voice language can change
+  utter.lang = languageSelect.value;
 
   const voices = speechSynthesis.getVoices();
-  speech.voice = voices.find(v => v.lang === speech.lang) || voices[0];
+  utter.voice = voices.find(v => v.lang === utter.lang) || voices[0];
 
-  speech.rate = 0.95;
-  speech.pitch = 1.05;
-  speech.volume = 1;
+  utter.rate = 0.95;
+  utter.pitch = 1.05;
+  utter.volume = 1;
 
-  speechSynthesis.speak(speech);
+  speechSynthesis.speak(utter);
 }
 
-/* Command handling */
+// Command handler
 function handleCommand(message) {
   const text = message.toLowerCase();
 
   if (text.includes("time")) {
-    speak("The time is " + new Date().toLocaleTimeString());
+    const t = new Date().toLocaleTimeString();
+    statusText.innerText = t;
+    speak("The time is " + t);
   }
   else if (text.includes("date")) {
-    speak("Today is " + new Date().toDateString());
-  }
-  else if (text.includes("open youtube")) {
-    speak("Opening YouTube");
-    window.open("https://youtube.com", "_blank");
-  }
-  else if (text.includes("open google")) {
-    speak("Opening Google");
-    window.open("https://google.com", "_blank");
+    const d = new Date().toDateString();
+    statusText.innerText = d;
+    speak("Today is " + d);
   }
   else {
-    wikipediaSmartSearch(message);
+    wikipediaSearch(message);
   }
 }
 
-/* Clean user sentence */
+// Clean sentence
 function cleanQuery(text) {
   return text
     .toLowerCase()
-    .replace(
-      /who is|what is|tell me about|define|explain|search|wikipedia|please|can you|could you|jarvis/gi,
-      ""
-    )
+    .replace(/who is|what is|tell me about|define|explain|please|can you|jarvis/gi, "")
     .trim();
 }
 
-/* SMART Wikipedia search (SEARCH → SUMMARY) */
-async function wikipediaSmartSearch(query) {
+// GUARANTEED Wikipedia logic
+async function wikipediaSearch(query) {
   const cleaned = cleanQuery(query);
 
   if (!cleaned) {
@@ -91,45 +82,49 @@ async function wikipediaSmartSearch(query) {
     return;
   }
 
-  speak("Searching Wikipedia");
+  statusText.innerText = "Searching Wikipedia for: " + cleaned;
+  speak("Searching");
 
   try {
-    /* STEP 1: Search */
+    // STEP 1: English Wikipedia SEARCH (ALWAYS WORKS)
     const searchURL =
-      `https://en.wikipedia.org/w/api.php?` +
-      `action=opensearch&format=json&origin=*` +
-      `&search=${encodeURIComponent(cleaned)}`;
+      `https://en.wikipedia.org/w/api.php` +
+      `?action=query&list=search&srsearch=${encodeURIComponent(cleaned)}` +
+      `&format=json&origin=*`;
 
     const searchRes = await fetch(searchURL);
     const searchData = await searchRes.json();
 
-    const titles = searchData[1];
-
-    if (!titles || titles.length === 0) {
-      speak("No information found");
+    if (!searchData.query.search.length) {
+      statusText.innerText = "No result found";
+      speak("I could not find information");
       return;
     }
 
-    /* STEP 2: Get first result summary */
-    const bestTitle = titles[0];
+    // STEP 2: Take best result title
+    const title = searchData.query.search[0].title;
 
+    // STEP 3: Get summary
     const summaryURL =
-      `https://en.wikipedia.org/api/rest_v1/page/summary/` +
-      encodeURIComponent(bestTitle);
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
 
     const summaryRes = await fetch(summaryURL);
     const summaryData = await summaryRes.json();
 
     if (summaryData.extract) {
+      statusText.innerText = summaryData.extract;
       speak(summaryData.extract);
     } else {
-      speak("I found information but cannot read it");
+      statusText.innerText = "Summary not available";
+      speak("Summary not available");
     }
 
   } catch (err) {
+    statusText.innerText = "Network error";
     speak("Network error");
   }
 }
+
 
 
 
