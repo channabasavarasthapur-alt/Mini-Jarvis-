@@ -2,22 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>JARVIS</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Jarvis</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+  <div class="jarvis">
+    <div class="ring"></div>
+    <p id="status">Tap the mic and speak</p>
+    <button id="micBtn">🎤</button><br>
 
-<div class="app">
-  <div class="ring" id="ring"></div>
+    <select id="language">
+      <option value="en-US">English</option>
+      <option value="hi-IN">Hindi</option>
+      <option value="kn-IN">Kannada</option>
+    </select>
+  </div>
 
-  <button id="micBtn" class="mic-btn">🎤</button>
-
-  <p id="status">Tap the mic and speak</p>
-</div>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
+
 
 
