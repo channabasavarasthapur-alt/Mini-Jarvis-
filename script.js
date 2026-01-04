@@ -2,7 +2,7 @@ const micBtn = document.getElementById("micBtn");
 const statusText = document.getElementById("status");
 const languageSelect = document.getElementById("language");
 
-/* Prevent voice loading bug */
+/* Fix voice loading */
 window.speechSynthesis.onvoiceschanged = () => {};
 
 /* Speech Recognition */
@@ -13,20 +13,19 @@ recognition.interimResults = false;
 
 /* Mic click */
 micBtn.addEventListener("click", e => {
-  e.preventDefault();                 // ❌ stop Google search
+  e.preventDefault(); // stop Google search
   recognition.lang = languageSelect.value;
   recognition.start();
   statusText.innerText = "Listening...";
 });
 
-/* Result */
+/* Speech result */
 recognition.onresult = e => {
   const message = e.results[0][0].transcript;
   statusText.innerText = message;
   handleCommand(message);
 };
 
-/* Error */
 recognition.onerror = () => {
   statusText.innerText = "Tap the mic";
   speak("Please try again");
@@ -34,6 +33,8 @@ recognition.onerror = () => {
 
 /* Speak */
 function speak(text) {
+  speechSynthesis.cancel();
+
   const speech = new SpeechSynthesisUtterance(text);
   speech.lang = languageSelect.value;
 
@@ -47,7 +48,7 @@ function speak(text) {
   speechSynthesis.speak(speech);
 }
 
-/* Handle commands */
+/* Command handling */
 function handleCommand(message) {
   const text = message.toLowerCase();
 
@@ -66,23 +67,23 @@ function handleCommand(message) {
     window.open("https://google.com", "_blank");
   }
   else {
-    searchWikipedia(message);
+    wikipediaSmartSearch(message);
   }
 }
 
-/* Clean query for Wikipedia */
+/* Clean user sentence */
 function cleanQuery(text) {
   return text
     .toLowerCase()
     .replace(
-      /who is|what is|tell me about|define|explain|search|wikipedia|please|can you|could you/gi,
+      /who is|what is|tell me about|define|explain|search|wikipedia|please|can you|could you|jarvis/gi,
       ""
     )
     .trim();
 }
 
-/* Wikipedia search */
-async function searchWikipedia(query) {
+/* SMART Wikipedia search (SEARCH → SUMMARY) */
+async function wikipediaSmartSearch(query) {
   const cleaned = cleanQuery(query);
 
   if (!cleaned) {
@@ -90,25 +91,46 @@ async function searchWikipedia(query) {
     return;
   }
 
-  speak("Searching");
+  speak("Searching Wikipedia");
 
   try {
-    const url =
-      "https://en.wikipedia.org/api/rest_v1/page/summary/" +
-      encodeURIComponent(cleaned);
+    /* STEP 1: Search */
+    const searchURL =
+      `https://en.wikipedia.org/w/api.php?` +
+      `action=opensearch&format=json&origin=*` +
+      `&search=${encodeURIComponent(cleaned)}`;
 
-    const res = await fetch(url);
-    const data = await res.json();
+    const searchRes = await fetch(searchURL);
+    const searchData = await searchRes.json();
 
-    if (data.extract && !data.type) {
-      speak(data.extract);
-    } else {
-      speak("I could not find information about " + cleaned);
+    const titles = searchData[1];
+
+    if (!titles || titles.length === 0) {
+      speak("No information found");
+      return;
     }
-  } catch (error) {
+
+    /* STEP 2: Get first result summary */
+    const bestTitle = titles[0];
+
+    const summaryURL =
+      `https://en.wikipedia.org/api/rest_v1/page/summary/` +
+      encodeURIComponent(bestTitle);
+
+    const summaryRes = await fetch(summaryURL);
+    const summaryData = await summaryRes.json();
+
+    if (summaryData.extract) {
+      speak(summaryData.extract);
+    } else {
+      speak("I found information but cannot read it");
+    }
+
+  } catch (err) {
     speak("Network error");
   }
 }
+
 
 
 
