@@ -3,50 +3,42 @@ const statusText = document.getElementById("status");
 const languageSelect = document.getElementById("language");
 
 let isSpeaking = false;
-let wakeListening = true;
 
-window.speechSynthesis.onvoiceschanged = () => {};
-
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
+// Speech Recognition
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 recognition.interimResults = false;
-recognition.continuous = true; // Keep listening for wake word
 
-// Start wake word listening automatically
-recognition.lang = languageSelect.value;
-recognition.start();
-statusText.innerText = "Listening for 'Hey Jarvis'...";
-
-recognition.onresult = e => {
-  const message = e.results[e.results.length -1][0].transcript.trim();
-  console.log("Speech detected:", message);
-
-  if(isSpeaking){
+// CLICK MIC
+micBtn.addEventListener("click", () => {
+  // Stop any ongoing speech
+  if (isSpeaking) {
     window.speechSynthesis.cancel();
     isSpeaking = false;
   }
 
-  // Wake word detection
-  if(wakeListening && message.toLowerCase().includes("hey jarvis")){
-    statusText.innerText = "Jarvis Activated!";
-    speak("Yes, I am listening.");
-    wakeListening = false; // temporarily disable wake listening
-    listenForCommand(); // now listen for actual command
-  }
+  recognition.lang = languageSelect.value;
+  recognition.start();
+  statusText.innerText = "Listening...";
+});
+
+// SPEECH RECOGNITION RESULT
+recognition.onresult = (e) => {
+  const message = e.results[0][0].transcript;
+  statusText.innerText = "You said: " + message;
+  handleCommand(message);
 };
 
 recognition.onerror = () => {
-  statusText.innerText = "Tap mic or reload";
+  statusText.innerText = "Tap the mic";
+  speak("Please try again");
 };
 
-// Function to speak
-function speak(text){
-  if(window.speechSynthesis.speaking){
+// SPEAK FUNCTION
+function speak(text) {
+  if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
   }
-
   isSpeaking = true;
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -63,62 +55,41 @@ function speak(text){
   window.speechSynthesis.speak(utter);
 }
 
-// Function to listen for actual command after wake word
-function listenForCommand(){
-  const commandRec = new SpeechRecognition();
-  commandRec.interimResults = false;
-  commandRec.lang = languageSelect.value;
-
-  statusText.innerText = "Listening for your command...";
-
-  commandRec.onresult = e => {
-    const cmd = e.results[0][0].transcript;
-    statusText.innerText = "You said: " + cmd;
-    handleCommand(cmd);
-    wakeListening = true; // re-enable wake word
-  };
-
-  commandRec.onerror = () => {
-    statusText.innerText = "Tap mic";
-    wakeListening = true;
-  };
-
-  commandRec.start();
-}
-
-// Command handling (same as before)
-function handleCommand(message){
+// HANDLE COMMANDS
+function handleCommand(message) {
   const text = message.toLowerCase();
 
-  if(text.includes("time")){
+  if (text.includes("time")) {
     const t = new Date().toLocaleTimeString();
     statusText.innerText = t;
     speak("The time is " + t);
-  }
-  else if(text.includes("date")){
+  } 
+  else if (text.includes("date")) {
     const d = new Date().toDateString();
     statusText.innerText = d;
     speak("Today is " + d);
-  }
-  else if(text.includes("open youtube")){
+  } 
+  else if (text.includes("open youtube")) {
     speak("Opening YouTube");
-    window.open("https://youtube.com","_blank");
-  }
-  else if(text.includes("open google")){
+    window.open("https://youtube.com", "_blank");
+  } 
+  else if (text.includes("open google")) {
     speak("Opening Google");
-    window.open("https://google.com","_blank");
-  }
-  else{
+    window.open("https://google.com", "_blank");
+  } 
+  else {
     wikiSearch(message);
   }
 }
 
+// CLEAN USER INPUT
 function cleanQuery(text){
   return text.toLowerCase()
     .replace(/who is|what is|tell me about|define|explain|please|can you|jarvis/gi,"")
     .trim();
 }
 
+// WIKIPEDIA SEARCH (CORS SAFE)
 async function wikiSearch(query){
   const cleaned = cleanQuery(query);
 
@@ -150,13 +121,11 @@ async function wikiSearch(query){
     statusText.innerText = firstTitle + ": " + firstDesc;
     speak(firstDesc);
 
-  }catch(err){
+  } catch(err){
     statusText.innerText = "Network error";
     speak("Network error. Please try again");
   }
 }
-
-
 
 
 
