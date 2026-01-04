@@ -2,67 +2,112 @@ const micBtn = document.getElementById("micBtn");
 const statusText = document.getElementById("status");
 const languageSelect = document.getElementById("language");
 
+let isSpeaking = false; // track if speaking
+
 window.speechSynthesis.onvoiceschanged = () => {};
 
+// Speech Recognition
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const recognition = new SpeechRecognition();
 recognition.interimResults = false;
 
+/* CLICK MIC */
 micBtn.addEventListener("click", e => {
   e.preventDefault();
+
+  // Stop any current speech if speaking
+  if (isSpeaking) {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+  }
+
+  // Set recognition language
   recognition.lang = languageSelect.value;
   recognition.start();
   statusText.innerText = "Listening...";
 });
 
+/* RESULT */
 recognition.onresult = e => {
   const message = e.results[0][0].transcript;
   statusText.innerText = "You said: " + message;
   handleCommand(message);
 };
 
+/* ERROR */
 recognition.onerror = () => {
   statusText.innerText = "Tap the mic";
   speak("Please try again");
 };
 
-function speak(text){
-  speechSynthesis.cancel();
+/* SPEAK */
+function speak(text) {
+  // Stop any previous speech
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+  }
+
+  isSpeaking = true;
+
   const utter = new SpeechSynthesisUtterance(text);
+
+  // IMPORTANT: use selected language for voice
   utter.lang = languageSelect.value;
-  const voices = speechSynthesis.getVoices();
+
+  const voices = window.speechSynthesis.getVoices();
   utter.voice = voices.find(v => v.lang === utter.lang) || voices[0];
+
   utter.rate = 0.95;
   utter.pitch = 1.05;
-  speechSynthesis.speak(utter);
+
+  utter.onend = () => {
+    isSpeaking = false;
+  };
+
+  window.speechSynthesis.speak(utter);
 }
 
-function handleCommand(message){
+/* COMMAND HANDLER */
+function handleCommand(message) {
   const text = message.toLowerCase();
-  if(text.includes("time")){
+
+  if (text.includes("time")) {
     const t = new Date().toLocaleTimeString();
     statusText.innerText = t;
     speak("The time is " + t);
   }
-  else if(text.includes("date")){
+  else if (text.includes("date")) {
     const d = new Date().toDateString();
     statusText.innerText = d;
     speak("Today is " + d);
   }
-  else{
+  else if (text.includes("open youtube")) {
+    speak("Opening YouTube");
+    window.open("https://youtube.com", "_blank");
+  }
+  else if (text.includes("open google")) {
+    speak("Opening Google");
+    window.open("https://google.com", "_blank");
+  }
+  else {
     wikiSearch(message);
   }
 }
 
-function cleanQuery(text){
-  return text.toLowerCase().replace(/who is|what is|tell me about|define|explain|please|can you|jarvis/gi,"").trim();
+/* CLEAN QUERY */
+function cleanQuery(text) {
+  return text.toLowerCase()
+    .replace(/who is|what is|tell me about|define|explain|please|can you|jarvis/gi, "")
+    .trim();
 }
 
-async function wikiSearch(query){
+/* WIKIPEDIA SEARCH - Opensearch (CORS friendly) */
+async function wikiSearch(query) {
   const cleaned = cleanQuery(query);
-  if(!cleaned){
+
+  if (!cleaned) {
     speak("Please say the topic clearly");
     return;
   }
@@ -70,7 +115,7 @@ async function wikiSearch(query){
   statusText.innerText = "Searching Wikipedia for: " + cleaned;
   speak("Searching");
 
-  try{
+  try {
     const searchURL = `https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&search=${encodeURIComponent(cleaned)}`;
     const res = await fetch(searchURL);
     const data = await res.json();
@@ -78,7 +123,7 @@ async function wikiSearch(query){
     const titles = data[1]; // titles array
     const descriptions = data[2]; // descriptions array
 
-    if(!titles.length){
+    if (!titles.length) {
       statusText.innerText = "No information found";
       speak("I could not find information on " + cleaned);
       return;
@@ -90,7 +135,7 @@ async function wikiSearch(query){
     statusText.innerText = firstTitle + ": " + firstDesc;
     speak(firstDesc);
 
-  }catch(err){
+  } catch (err) {
     statusText.innerText = "Network error";
     speak("Network error. Please try again");
   }
