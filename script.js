@@ -22,7 +22,7 @@ recognition.interimResults = false;
 
 // CLICK MIC
 micBtn.addEventListener("click", () => {
-    // Stop current speech
+    // Stop any ongoing speech
     if(isSpeaking){
         window.speechSynthesis.cancel();
         isSpeaking = false;
@@ -55,9 +55,9 @@ function speak(text){
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = languageSelect.value;
 
-    // Pick a proper voice
+    // Pick proper voice
     let voice = voices.find(v => v.lang === utter.lang);
-    if(!voice) voice = voices[0]; // fallback
+    if(!voice) voice = voices[0];
     utter.voice = voice;
 
     utter.rate = 0.95;
@@ -139,3 +139,4 @@ async function wikiSearch(query){
         speak("Network error. Please try again");
     }
 }
+
