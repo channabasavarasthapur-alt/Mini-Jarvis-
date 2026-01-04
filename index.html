@@ -2,15 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini Jarvis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Jarvis AI</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <div class="jarvis">
-    <div class="ring"></div>
-    <p id="status">Tap the mic and speak</p>
-    <button id="micBtn">🎤</button><br>
+    <div class="core">
+      <div class="ring"></div>
+      <div class="glow"></div>
+      <div class="core-center"></div>
+    </div>
+
+    <p id="status">Tap the mic</p>
+
+    <button id="micBtn" type="button">🎤</button>
 
     <select id="language">
       <option value="en-US">English</option>
@@ -22,6 +29,8 @@
   <script src="script.js"></script>
 </body>
 </html>
+
+
 
 
 
