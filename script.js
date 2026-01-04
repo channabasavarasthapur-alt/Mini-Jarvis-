@@ -1,75 +1,52 @@
 const micBtn = document.getElementById("mic");
 const statusText = document.getElementById("status");
-const languageSelect = document.getElementById("language");
 
-let voices = [];
+// ---- Speech Recognition ----
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
 
-// Load voices
-speechSynthesis.onvoiceschanged = () => {
-  voices = speechSynthesis.getVoices();
-};
-
-// Force unlock speech (IMPORTANT)
-function unlockSpeech() {
-  const u = new SpeechSynthesisUtterance(" ");
-  u.volume = 0;
-  speechSynthesis.speak(u);
-  speechSynthesis.cancel();
+if (!SpeechRecognition) {
+  statusText.innerText = "Speech recognition not supported";
 }
 
+const recognition = new SpeechRecognition();
+recognition.lang = "en-US";
+recognition.continuous = false;
+recognition.interimResults = false;
+
+// ---- Speak (Android safe) ----
 function speak(text) {
   if (!text) return;
 
   speechSynthesis.cancel();
 
   const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
 
-  // FORCE voice
-  const selectedLang = languageSelect.value;
-  const voice = voices.find(v => v.lang === selectedLang) || voices[0];
-  utter.voice = voice;
-  utter.lang = voice.lang;
-
-  speechSynthesis.speak(utter);
+  // Android Chrome needs delay
+  setTimeout(() => {
+    speechSynthesis.speak(utter);
+  }, 300);
 }
 
-/* ---------------- MIC ---------------- */
-
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
-const recognition = new SpeechRecognition();
-recognition.continuous = false;
-
-micBtn.addEventListener("click", () => {
-  unlockSpeech(); // 🔥 THIS FIXES NO SOUND
-  speechSynthesis.cancel();
-  recognition.lang = languageSelect.value;
-  recognition.start();
-  statusText.innerText = "Listening...";
-});
-
-recognition.onresult = (e) => {
-  const text = e.results[0][0].transcript;
-  statusText.innerText = "You said: " + text;
-  wiki(text);
-};
-
-/* ---------------- WIKI ---------------- */
-
-function clean(text) {
+// ---- Clean question ----
+function cleanQuery(text) {
   return text
     .toLowerCase()
     .replace(/who is|what is|tell me about|define|explain/gi, "")
     .trim();
 }
 
-async function wiki(query) {
-  const topic = clean(query);
+// ---- Wikipedia Search ----
+async function searchWiki(query) {
+  const topic = cleanQuery(query);
+
   if (!topic) {
-    speak("Please repeat");
+    speak("Please say the topic clearly");
     return;
   }
+
+  statusText.innerText = "Searching " + topic;
 
   try {
     const res = await fetch(
@@ -77,6 +54,7 @@ async function wiki(query) {
         topic
       )}`
     );
+
     const data = await res.json();
 
     if (data.extract) {
@@ -90,4 +68,21 @@ async function wiki(query) {
   }
 }
 
+// ---- Mic Button ----
+micBtn.addEventListener("click", () => {
+  speechSynthesis.cancel(); // stop speaking
+  statusText.innerText = "Listening...";
+  recognition.start();
+});
 
+// ---- Result ----
+recognition.onresult = (event) => {
+  const text = event.results[0][0].transcript;
+  statusText.innerText = "You said: " + text;
+  searchWiki(text);
+};
+
+// ---- Error ----
+recognition.onerror = (event) => {
+  statusText.innerText = "Mic error: " + event.error;
+};
