@@ -1,12 +1,13 @@
 const micBtn = document.getElementById("mic");
 const statusText = document.getElementById("status");
 
-// ---- Speech Recognition ----
+/* ---------- SPEECH RECOGNITION ---------- */
+
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (!SpeechRecognition) {
-  statusText.innerText = "Speech recognition not supported";
+  statusText.innerText = "Speech recognition not supported on this browser.";
 }
 
 const recognition = new SpeechRecognition();
@@ -14,22 +15,25 @@ recognition.lang = "en-US";
 recognition.continuous = false;
 recognition.interimResults = false;
 
-// ---- Speak (Android safe) ----
+/* ---------- SPEECH SYNTHESIS ---------- */
+
 function speak(text) {
   if (!text) return;
 
+  // Stop anything currently speaking
   speechSynthesis.cancel();
 
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "en-US";
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
 
-  // Android Chrome needs delay
+  // Android Chrome needs a delay
   setTimeout(() => {
-    speechSynthesis.speak(utter);
+    speechSynthesis.speak(utterance);
   }, 300);
 }
 
-// ---- Clean question ----
+/* ---------- HELPERS ---------- */
+
 function cleanQuery(text) {
   return text
     .toLowerCase()
@@ -37,52 +41,56 @@ function cleanQuery(text) {
     .trim();
 }
 
-// ---- Wikipedia Search ----
-async function searchWiki(query) {
+/* ---------- WIKIPEDIA SEARCH ---------- */
+
+async function wikiSearch(query) {
   const topic = cleanQuery(query);
 
   if (!topic) {
-    speak("Please say the topic clearly");
+    speak("Please say the topic clearly.");
     return;
   }
 
-  statusText.innerText = "Searching " + topic;
+  statusText.innerText = "Searching for " + topic + "...";
 
   try {
-    const res = await fetch(
+    const response = await fetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
         topic
       )}`
     );
 
-    const data = await res.json();
+    const data = await response.json();
 
     if (data.extract) {
       statusText.innerText = data.extract;
       speak(data.extract);
     } else {
-      speak("No information found");
+      speak("Sorry, I could not find information about " + topic);
     }
-  } catch {
-    speak("Network error");
+  } catch (err) {
+    speak("Network error. Please try again.");
   }
 }
 
-// ---- Mic Button ----
+/* ---------- MIC BUTTON ---------- */
+
 micBtn.addEventListener("click", () => {
-  speechSynthesis.cancel(); // stop speaking
+  // Android Chrome requirement
+  speechSynthesis.cancel();
   statusText.innerText = "Listening...";
   recognition.start();
 });
 
-// ---- Result ----
+/* ---------- RESULTS ---------- */
+
 recognition.onresult = (event) => {
   const text = event.results[0][0].transcript;
-  statusText.innerText = "You said: " + text;
-  searchWiki(text);
+  statusText.innerText = "You asked: " + text;
+  wikiSearch(text);
 };
 
-// ---- Error ----
 recognition.onerror = (event) => {
-  statusText.innerText = "Mic error: " + event.error;
+  statusText.innerText = "Mic error. Please tap again.";
 };
+
