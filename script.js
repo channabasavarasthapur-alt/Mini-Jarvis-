@@ -1,32 +1,42 @@
+// ELEMENTS
 const output = document.getElementById("output");
 const micBtn = document.getElementById("micBtn");
 
-// ---------------- MIC SETUP ----------------
+// ---------------- SPEECH RECOGNITION ----------------
 let recognition;
+
 if ("webkitSpeechRecognition" in window) {
   recognition = new webkitSpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.continuous = false;
-  recognition.interimResults = false;
+} else if ("SpeechRecognition" in window) {
+  recognition = new SpeechRecognition();
 } else {
   alert("Speech recognition not supported in this browser.");
 }
 
-// Mic click
-micBtn.onclick = () => {
-  speechSynthesis.cancel(); // stop speaking
-  output.innerText = "🎤 Listening...";
-  recognition.start();
-};
+recognition.lang = "en-US";
+recognition.continuous = false;
+recognition.interimResults = false;
 
-// When speech is recognized
+// Mic button click (USER ACTION → REQUIRED)
+micBtn.addEventListener("click", () => {
+  try {
+    speechSynthesis.cancel();
+    clearTyping();
+    output.innerText = "🎤 Listening...";
+    recognition.start();
+  } catch (e) {
+    console.log("Mic already running");
+  }
+});
+
+// When speech is captured
 recognition.onresult = (event) => {
-  const spokenText = event.results[0][0].transcript;
-  getAnswer(spokenText);
+  const text = event.results[0][0].transcript;
+  getAnswer(text);
 };
 
-recognition.onerror = () => {
-  output.innerText = "Mic error. Try again.";
+recognition.onerror = (event) => {
+  output.innerText = "Mic error: " + event.error;
 };
 
 // ---------------- MAIN LOGIC ----------------
@@ -49,7 +59,7 @@ async function getAnswer(question) {
   }
 
   typeText("❌ No info found in Wikipedia, searching in other platform...");
-  speak("No info found in Wikipedia. Searching in other platform.");
+  speak("No info found in Wikipedia, searching in other platform.");
 
   answer = await fromDuckDuckGo(question);
 
@@ -93,17 +103,22 @@ async function fromDuckDuckGo(query) {
 }
 
 // ---------------- TYPING ANIMATION ----------------
-let typingInterval;
+let typingTimer;
+
 function typeText(text) {
-  clearInterval(typingInterval);
+  clearTyping();
   output.innerText = "";
   let i = 0;
 
-  typingInterval = setInterval(() => {
+  typingTimer = setInterval(() => {
     output.innerText += text.charAt(i);
     i++;
-    if (i >= text.length) clearInterval(typingInterval);
-  }, 25); // typing speed
+    if (i >= text.length) clearTyping();
+  }, 25);
+}
+
+function clearTyping() {
+  clearInterval(typingTimer);
 }
 
 // ---------------- VOICE ----------------
