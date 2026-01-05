@@ -1,6 +1,6 @@
-// ELEMENTS
-const output = document.getElementById("output");
-const micBtn = document.getElementById("micBtn");
+// ELEMENTS (MATCHING YOUR HTML)
+const micBtn = document.getElementById("mic");
+const statusBox = document.getElementById("status");
 
 // ---------------- SPEECH RECOGNITION ----------------
 let recognition;
@@ -17,26 +17,26 @@ recognition.lang = "en-US";
 recognition.continuous = false;
 recognition.interimResults = false;
 
-// Mic button click (USER ACTION → REQUIRED)
+// MIC BUTTON CLICK (REQUIRED USER ACTION)
 micBtn.addEventListener("click", () => {
   try {
     speechSynthesis.cancel();
     clearTyping();
-    output.innerText = "🎤 Listening...";
+    statusBox.innerText = "🎤 Listening...";
     recognition.start();
   } catch (e) {
     console.log("Mic already running");
   }
 });
 
-// When speech is captured
+// WHEN USER SPEAKS
 recognition.onresult = (event) => {
-  const text = event.results[0][0].transcript;
-  getAnswer(text);
+  const spokenText = event.results[0][0].transcript;
+  getAnswer(spokenText);
 };
 
 recognition.onerror = (event) => {
-  output.innerText = "Mic error: " + event.error;
+  statusBox.innerText = "Mic error: " + event.error;
 };
 
 // ---------------- MAIN LOGIC ----------------
@@ -107,11 +107,11 @@ let typingTimer;
 
 function typeText(text) {
   clearTyping();
-  output.innerText = "";
+  statusBox.innerText = "";
   let i = 0;
 
   typingTimer = setInterval(() => {
-    output.innerText += text.charAt(i);
+    statusBox.innerText += text.charAt(i);
     i++;
     if (i >= text.length) clearTyping();
   }, 25);
@@ -131,4 +131,5 @@ function speak(text) {
   utter.pitch = 1;
   speechSynthesis.speak(utter);
 }
+
 
