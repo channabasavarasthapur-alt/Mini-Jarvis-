@@ -1,96 +1,64 @@
-const micBtn = document.getElementById("mic");
-const statusText = document.getElementById("status");
+const output = document.getElementById("output");
 
-/* ---------- SPEECH RECOGNITION ---------- */
+async function getAnswer(question) {
+  output.innerText = "Searching...";
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
-if (!SpeechRecognition) {
-  statusText.innerText = "Speech recognition not supported on this browser.";
-}
-
-const recognition = new SpeechRecognition();
-recognition.lang = "en-US";
-recognition.continuous = false;
-recognition.interimResults = false;
-
-/* ---------- SPEECH SYNTHESIS ---------- */
-
-function speak(text) {
-  if (!text) return;
-
-  // Stop anything currently speaking
-  speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-
-  // Android Chrome needs a delay
-  setTimeout(() => {
-    speechSynthesis.speak(utterance);
-  }, 300);
-}
-
-/* ---------- HELPERS ---------- */
-
-function cleanQuery(text) {
-  return text
-    .toLowerCase()
-    .replace(/who is|what is|tell me about|define|explain/gi, "")
-    .trim();
-}
-
-/* ---------- WIKIPEDIA SEARCH ---------- */
-
-async function wikiSearch(query) {
-  const topic = cleanQuery(query);
-
-  if (!topic) {
-    speak("Please say the topic clearly.");
+  let answer = await fromWikipedia(question);
+  if (answer) {
+    speak(answer);
+    output.innerText = answer;
     return;
   }
 
-  statusText.innerText = "Searching for " + topic + "...";
+  answer = await fromDuckDuckGo(question);
+  if (answer) {
+    speak(answer);
+    output.innerText = answer;
+    return;
+  }
 
+  output.innerText = "Sorry, no information found.";
+  speak("Sorry, no information found.");
+}
+
+// ---------- WIKIPEDIA ----------
+async function fromWikipedia(query) {
   try {
-    const response = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-        topic
-      )}`
-    );
+    const title = encodeURIComponent(query.trim().replace(/\s+/g, "_"));
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`;
 
-    const data = await response.json();
+    const res = await fetch(url);
+    if (!res.ok) return null;
 
-    if (data.extract) {
-      statusText.innerText = data.extract;
-      speak(data.extract);
-    } else {
-      speak("Sorry, I could not find information about " + topic);
-    }
-  } catch (err) {
-    speak("Network error. Please try again.");
+    const data = await res.json();
+    return data.extract || null;
+  } catch {
+    return null;
   }
 }
 
-/* ---------- MIC BUTTON ---------- */
+// ---------- DUCKDUCKGO ----------
+async function fromDuckDuckGo(query) {
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
+      query
+    )}&format=json&no_redirect=1&no_html=1`;
 
-micBtn.addEventListener("click", () => {
-  // Android Chrome requirement
-  speechSynthesis.cancel();
-  statusText.innerText = "Listening...";
-  recognition.start();
-});
+    const res = await fetch(url);
+    const data = await res.json();
 
-/* ---------- RESULTS ---------- */
+    return data.AbstractText || data.Answer || null;
+  } catch {
+    return null;
+  }
+}
 
-recognition.onresult = (event) => {
-  const text = event.results[0][0].transcript;
-  statusText.innerText = "You asked: " + text;
-  wikiSearch(text);
-};
+// ---------- VOICE ----------
+function speak(text) {
+  window.speechSynthesis.cancel(); // stop if already speaking
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  speechSynthesis.speak(utter);
+}
 
-recognition.onerror = (event) => {
-  statusText.innerText = "Mic error. Please tap again.";
-};
 
