@@ -45,7 +45,7 @@ micBtn.addEventListener("click", () => {
 
   if (!listening) {
     speak(
-      "Hey there! I am Jarvis, your AI assistant, created by Chun-nuh Baasaavaa. How can I help you?"
+      "Hey there! I am Jarvis, your AI assistant, created by  Baasaavaa. How can I help you?"
     );
 
     setTimeout(() => {
@@ -130,6 +130,7 @@ function speak(text) {
 
   speechSynthesis.speak(utter);
 }
+
 
 
 
