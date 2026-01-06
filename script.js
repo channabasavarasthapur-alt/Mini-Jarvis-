@@ -1,134 +1,132 @@
-// ELEMENTS (MATCHING YOUR HTML)
 const micBtn = document.getElementById("mic");
-const statusBox = document.getElementById("status");
+const statusEl = document.getElementById("status");
 
-// ---------------- SPEECH RECOGNITION ----------------
 let recognition;
+let listening = false;
+let typingInterval = null;
 
-if ("webkitSpeechRecognition" in window) {
-  recognition = new webkitSpeechRecognition();
-} else if ("SpeechRecognition" in window) {
+// ---------- SPEECH RECOGNITION ----------
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
   recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    listening = true;
+    statusEl.textContent = "Listening...";
+  };
+
+  recognition.onend = () => {
+    listening = false;
+  };
+
+  recognition.onerror = () => {
+    statusEl.textContent = "Mic error";
+  };
+
+  recognition.onresult = (event) => {
+    const query = event.results[0][0].transcript;
+    thinkingEffect(() => searchWikipedia(query));
+  };
 } else {
-  alert("Speech recognition not supported in this browser.");
+  statusEl.textContent = "Speech not supported";
 }
 
-recognition.lang = "en-US";
-recognition.continuous = false;
-recognition.interimResults = false;
-
-// MIC BUTTON CLICK (REQUIRED USER ACTION)
+// ---------- MIC CLICK ----------
 micBtn.addEventListener("click", () => {
-  try {
-    speechSynthesis.cancel();
-    clearTyping();
-    statusBox.innerText = "🎤 Listening...";
-    recognition.start();
-  } catch (e) {
-    console.log("Mic already running");
+  if (!recognition) return;
+
+  // stop current speech & typing (realistic interruption)
+  speechSynthesis.cancel();
+  if (typingInterval) clearInterval(typingInterval);
+
+  if (!listening) {
+    speak(
+      "Hey there! I am Jarvis, your AI assistant, created by Channa Basava. How can I help you?"
+    );
+
+    setTimeout(() => {
+      recognition.start();
+    }, 1800);
   }
 });
 
-// WHEN USER SPEAKS
-recognition.onresult = (event) => {
-  const spokenText = event.results[0][0].transcript;
-  getAnswer(spokenText);
-};
+// ---------- THINKING EFFECT ----------
+function thinkingEffect(callback) {
+  let dots = 0;
+  statusEl.textContent = "Thinking";
 
-recognition.onerror = (event) => {
-  statusBox.innerText = "Mic error: " + event.error;
-};
+  const think = setInterval(() => {
+    dots = (dots + 1) % 4;
+    statusEl.textContent = "Thinking" + ".".repeat(dots);
+  }, 400);
 
-// ---------------- MAIN LOGIC ----------------
-async function getAnswer(question) {
-  if (!question || question.trim().length < 2) {
-    typeText("Please ask a proper question.");
-    speak("Please ask a proper question.");
-    return;
-  }
-
-  speechSynthesis.cancel();
-  typeText("🔍 Searching in Wikipedia...");
-
-  let answer = await fromWikipedia(question);
-
-  if (answer && answer.length > 60) {
-    typeText(answer);
-    speak(answer);
-    return;
-  }
-
-  typeText("❌ No info found in Wikipedia, searching in other platform...");
-  speak("No info found in Wikipedia, searching in other platform.");
-
-  answer = await fromDuckDuckGo(question);
-
-  if (answer && answer.length > 20) {
-    typeText(answer);
-    speak(answer);
-    return;
-  }
-
-  const fallback = "Sorry, no information found anywhere.";
-  typeText(fallback);
-  speak(fallback);
+  setTimeout(() => {
+    clearInterval(think);
+    callback();
+  }, 1400); // human-like delay
 }
 
-// ---------------- WIKIPEDIA ----------------
-async function fromWikipedia(query) {
+// ---------- WIKIPEDIA SEARCH ----------
+async function searchWikipedia(query) {
   try {
-    const title = encodeURIComponent(query.trim().replace(/\s+/g, "_"));
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${title}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.extract || null;
-  } catch {
-    return null;
-  }
-}
+    statusEl.textContent = "Searching Wikipedia...";
 
-// ---------------- DUCKDUCKGO ----------------
-async function fromDuckDuckGo(query) {
-  try {
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
       query
-    )}&format=json&no_redirect=1&no_html=1`;
+    )}`;
+
     const res = await fetch(url);
     const data = await res.json();
-    return data.AbstractText || data.Answer || null;
-  } catch {
-    return null;
+
+    if (!data.extract) {
+      const msg =
+        "No information found in Wikipedia. Searching in other platform.";
+      typeText(msg);
+      speak(msg);
+      return;
+    }
+
+    let text = data.extract
+      .replace(/\s+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2");
+
+    typeText(text);
+
+    setTimeout(() => {
+      speak(text);
+    }, 600); // pause before speaking (realism)
+  } catch (e) {
+    statusEl.textContent = "Something went wrong";
   }
 }
 
-// ---------------- TYPING ANIMATION ----------------
-let typingTimer;
-
+// ---------- TYPING ANIMATION ----------
 function typeText(text) {
-  clearTyping();
-  statusBox.innerText = "";
+  statusEl.textContent = "";
   let i = 0;
 
-  typingTimer = setInterval(() => {
-    statusBox.innerText += text.charAt(i);
+  if (typingInterval) clearInterval(typingInterval);
+
+  typingInterval = setInterval(() => {
+    statusEl.textContent += text.charAt(i);
     i++;
-    if (i >= text.length) clearTyping();
-  }, 25);
+    if (i >= text.length) clearInterval(typingInterval);
+  }, 22); // natural typing speed
 }
 
-function clearTyping() {
-  clearInterval(typingTimer);
-}
-
-// ---------------- VOICE ----------------
+// ---------- TEXT TO SPEECH ----------
 function speak(text) {
-  if (!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
+
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "en-US";
-  utter.rate = 1;
+  utter.rate = 0.95; // natural speed
   utter.pitch = 1;
+  utter.volume = 1;
+
   speechSynthesis.speak(utter);
 }
-
