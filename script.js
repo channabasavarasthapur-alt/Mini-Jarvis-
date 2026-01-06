@@ -5,7 +5,7 @@ let recognition;
 let listening = false;
 let typingInterval = null;
 
-// ---------- SPEECH RECOGNITION ----------
+// ---------------- SPEECH RECOGNITION ----------------
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -35,26 +35,22 @@ if (SpeechRecognition) {
   statusEl.textContent = "Speech not supported";
 }
 
-// ---------- MIC CLICK ----------
+// ---------------- MIC CLICK ----------------
 micBtn.addEventListener("click", () => {
-  if (!recognition) return;
+  if (!recognition || listening) return;
 
-  // stop current speech & typing (realistic interruption)
   speechSynthesis.cancel();
   if (typingInterval) clearInterval(typingInterval);
 
-  if (!listening) {
-    speak(
-      "Hey there! I am Jarvis, your AI assistant, created by  Baasaavaa. How can I help you?"
-    );
+  const intro =
+    "Hey there! I am Jarvis, your AI assistant, created by Chun-nuh Baasava. How can I help you?";
 
-    setTimeout(() => {
-      recognition.start();
-    }, 1800);
-  }
+  speak(intro, () => {
+    recognition.start(); // start mic AFTER speaking
+  });
 });
 
-// ---------- THINKING EFFECT ----------
+// ---------------- THINKING EFFECT ----------------
 function thinkingEffect(callback) {
   let dots = 0;
   statusEl.textContent = "Thinking";
@@ -67,10 +63,10 @@ function thinkingEffect(callback) {
   setTimeout(() => {
     clearInterval(think);
     callback();
-  }, 1400); // human-like delay
+  }, 1200);
 }
 
-// ---------- WIKIPEDIA SEARCH ----------
+// ---------------- WIKIPEDIA SEARCH ----------------
 async function searchWikipedia(query) {
   try {
     statusEl.textContent = "Searching Wikipedia...";
@@ -82,29 +78,67 @@ async function searchWikipedia(query) {
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!data.extract) {
-      const msg =
-        "No information found in Wikipedia. Searching in other platform.";
-      typeText(msg);
-      speak(msg);
-      return;
+    if (data.extract) {
+      let text = cleanText(data.extract);
+      typeText(text);
+      setTimeout(() => speak(text), 500);
+    } else {
+      fallbackDuckDuckGo(query);
     }
-
-    let text = data.extract
-      .replace(/\s+/g, " ")
-      .replace(/([a-z])([A-Z])/g, "$1 $2");
-
-    typeText(text);
-
-    setTimeout(() => {
-      speak(text);
-    }, 600); // pause before speaking (realism)
-  } catch (e) {
-    statusEl.textContent = "Something went wrong";
+  } catch {
+    fallbackDuckDuckGo(query);
   }
 }
 
-// ---------- TYPING ANIMATION ----------
+// ---------------- DUCKDUCKGO FALLBACK ----------------
+async function fallbackDuckDuckGo(query) {
+  const msg = "No info in Wikipedia. Searching in DuckDuckGo.";
+  typeText(msg);
+  speak(msg);
+
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(
+      query
+    )}&format=json&no_redirect=1&no_html=1`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    let answer =
+      data.AbstractText ||
+      data.Answer ||
+      (data.RelatedTopics &&
+        data.RelatedTopics[0] &&
+        data.RelatedTopics[0].Text);
+
+    if (answer) {
+      answer = cleanText(answer);
+      setTimeout(() => {
+        typeText(answer);
+        speak(answer);
+      }, 800);
+    } else {
+      const noAns = "Sorry, I could not find information on this topic.";
+      setTimeout(() => {
+        typeText(noAns);
+        speak(noAns);
+      }, 800);
+    }
+  } catch {
+    const err = "Something went wrong while searching.";
+    typeText(err);
+    speak(err);
+  }
+}
+
+// ---------------- TEXT CLEANING ----------------
+function cleanText(text) {
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+// ---------------- TYPING ANIMATION ----------------
 function typeText(text) {
   statusEl.textContent = "";
   let i = 0;
@@ -115,21 +149,25 @@ function typeText(text) {
     statusEl.textContent += text.charAt(i);
     i++;
     if (i >= text.length) clearInterval(typingInterval);
-  }, 22); // natural typing speed
+  }, 22);
 }
 
-// ---------- TEXT TO SPEECH ----------
-function speak(text) {
+// ---------------- TEXT TO SPEECH ----------------
+function speak(text, onEnd) {
   speechSynthesis.cancel();
 
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "en-US";
-  utter.rate = 0.95; // natural speed
+  utter.rate = 0.95;
   utter.pitch = 1;
-  utter.volume = 1;
+
+  utter.onend = () => {
+    if (onEnd) onEnd();
+  };
 
   speechSynthesis.speak(utter);
 }
+
 
 
 
