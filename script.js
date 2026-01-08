@@ -5,7 +5,10 @@ let recognition;
 let listening = false;
 let typingInterval = null;
 
-// ---------------- SPEECH RECOGNITION ----------------
+// check if greeting already played
+let greeted = sessionStorage.getItem("jarvisGreeted");
+
+// ---------- SPEECH RECOGNITION ----------
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -35,22 +38,29 @@ if (SpeechRecognition) {
   statusEl.textContent = "Speech not supported";
 }
 
-// ---------------- MIC CLICK ----------------
+// ---------- MIC CLICK ----------
 micBtn.addEventListener("click", () => {
   if (!recognition || listening) return;
 
   speechSynthesis.cancel();
   if (typingInterval) clearInterval(typingInterval);
 
-  const intro =
-    "Hey there! I am Jarvis, your AI assistant, created by Chun-nuh Baasava. How can I help you?";
+  // 🔥 GREETING ONLY ONCE
+  if (!greeted) {
+    const intro =
+      "Hello! I am Jarvis, your AI assistant, created by Chun-nuh Baasava. How can I help you?";
 
-  speak(intro, () => {
-    recognition.start(); // start mic AFTER speaking
-  });
+    speak(intro, () => {
+      sessionStorage.setItem("jarvisGreeted", "true");
+      greeted = true;
+      recognition.start();
+    });
+  } else {
+    recognition.start(); // directly listen
+  }
 });
 
-// ---------------- THINKING EFFECT ----------------
+// ---------- THINKING EFFECT ----------
 function thinkingEffect(callback) {
   let dots = 0;
   statusEl.textContent = "Thinking";
@@ -66,7 +76,7 @@ function thinkingEffect(callback) {
   }, 1200);
 }
 
-// ---------------- WIKIPEDIA SEARCH ----------------
+// ---------- WIKIPEDIA SEARCH ----------
 async function searchWikipedia(query) {
   try {
     statusEl.textContent = "Searching Wikipedia...";
@@ -90,7 +100,7 @@ async function searchWikipedia(query) {
   }
 }
 
-// ---------------- DUCKDUCKGO FALLBACK ----------------
+// ---------- DUCKDUCKGO FALLBACK ----------
 async function fallbackDuckDuckGo(query) {
   const msg = "No info in Wikipedia. Searching in DuckDuckGo.";
   typeText(msg);
@@ -119,26 +129,21 @@ async function fallbackDuckDuckGo(query) {
       }, 800);
     } else {
       const noAns = "Sorry, I could not find information on this topic.";
-      setTimeout(() => {
-        typeText(noAns);
-        speak(noAns);
-      }, 800);
+      typeText(noAns);
+      speak(noAns);
     }
   } catch {
-    const err = "Something went wrong while searching.";
-    typeText(err);
-    speak(err);
+    typeText("Something went wrong.");
   }
 }
 
-// ---------------- TEXT CLEANING ----------------
+// ---------- HELPERS ----------
 function cleanText(text) {
   return text
     .replace(/\s+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
-// ---------------- TYPING ANIMATION ----------------
 function typeText(text) {
   statusEl.textContent = "";
   let i = 0;
@@ -152,23 +157,12 @@ function typeText(text) {
   }, 22);
 }
 
-// ---------------- TEXT TO SPEECH ----------------
 function speak(text, onEnd) {
   speechSynthesis.cancel();
-
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "en-US";
   utter.rate = 0.95;
-  utter.pitch = 1;
 
-  utter.onend = () => {
-    if (onEnd) onEnd();
-  };
-
+  utter.onend = () => onEnd && onEnd();
   speechSynthesis.speak(utter);
 }
-
-
-
-
-
